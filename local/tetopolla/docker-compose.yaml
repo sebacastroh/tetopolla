@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    image: tetopolla
+    working_dir: /usr/local/src
+    ports:
+      - "5006:5006"
+    volumes:
+      - ../../src:/usr/local/src
+    command: ["bokeh", "serve", "app/", "--allow-websocket-origin=*"]
+  python:
+    image: tetopolla
+    build:
+      context: .
+      dockerfile: tetopolla.Dockerfile
+    volumes:
+      - ../../src:/usr/local/src
+    entrypoint: [ "python3" ]
