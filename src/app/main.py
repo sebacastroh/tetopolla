@@ -10,9 +10,9 @@ from jinja2 import Environment, FileSystemLoader
 username = TextInput(title='Nombre de usuario', name='username')
 password = TextInput(title='Contraseña', name='password')
 
-button_login   = Button(label='Iniciar sesión', button_type='success', sizing_mode='stretch_width', align='end', name='login')
-button_matches = Button(label='Partidos', button_type='success', sizing_mode='stretch_width', align='end')
-button_cards   = Button(label='Mis tarjetas', button_type='success', sizing_mode='stretch_width', align='end')
+button_login   = Button(label='Iniciar sesión', button_type='success', align='end', name='login')
+button_matches = Button(label='Partidos', button_type='success', align='end')
+button_cards   = Button(label='Mis tarjetas', button_type='success', align='end')
 
 _env = Environment(loader=FileSystemLoader('app'))
 FILE = _env.get_template(os.path.join('templates', 'website.html'))
