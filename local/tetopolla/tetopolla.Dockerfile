@@ -6,6 +6,7 @@ WORKDIR /usr/local/src
 
 # Install python libraries
 COPY ./environment.yml /usr/local/src/environment.yml
+RUN conda update conda
 RUN conda env update --name base --file /usr/local/src/environment.yml
 
 # Set volume
