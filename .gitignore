@@ -1,0 +1,5 @@
+# Compilation files
+*.pyc
+
+# Database
+/src/data/users.csv
