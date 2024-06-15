@@ -2,4 +2,4 @@
 *.pyc
 
 # Database
-/src/data/users.csv
+/src/data/tetopolla.db
