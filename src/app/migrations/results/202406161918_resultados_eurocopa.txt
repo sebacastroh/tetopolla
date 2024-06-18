@@ -1,0 +1,10 @@
+# Torneo
+Eurocopa,2024
+# Resultados
+GER,SCO,5-1
+HUN,SUI,1-3
+ESP,CRO,3-0
+ITA,ALB,2-1
+POL,NED,1-2
+SVN,DEN,1-1
+SRB,ENG,0-1

@@ -1,0 +1,44 @@
+{
+    "cards": [
+        {
+            "name": "Profe, la hora",
+            "description": "El jugador puede utilizar esta tarjeta a partir del minuto 76 (75:01), con lo cual se considerará el resultado actual del partido para su planilla, aunque después el resultado pueda cambiar",
+            "in_match": false
+        },
+        {
+            "name": "Doblete",
+            "description": "El jugador debe indicar antes del partido si utiliza esta tarjeta. Los puntos obtenidos se multiplican por 2",
+            "in_match": false
+        },
+        {
+            "name": "Triplete",
+            "description": "El jugador debe indicar antes del partido si utiliza esta tarjeta. Los puntos obtenidos se multiplican por 3",
+            "in_match": false
+        },
+        {
+            "name": "Hincha de cartón",
+            "description": "El jugador puede utilizar esta tarjeta durante cualquier minuto del partido. Si la usa, su apuesta se invierte. Por ejemplo, si dijo que A ganaba 2-0 y la utiliza, su apuesta será que A pierde 2-0",
+            "in_match": true
+        },
+        {
+            "name": "El semental del gol",
+            "description": "El jugador debe indicar antes del partido si utiliza esta tarjeta. Gana un punto extra por cada gol que se convierta en el partido",
+            "in_match": false
+        },
+        {
+            "name": "A morir",
+            "description": "El jugador debe indicar antes del partido que utiliza esta tarjeta. Si acierta exactamente en el resultado gana 20 puntos, si se equivoca pierde 10 puntos",
+            "in_match": false
+        },
+        {
+            "name": "Todos al ataque",
+            "description": "El jugador puede utilizar esta tarjeta antes del minuto 91 (90:01). Gana dos puntos por cada gol que se convierta a partir de ese minuto. No se consideran los penales",
+            "in_match": true
+        },
+        {
+            "name": "Toby Vega",
+            "description": "El jugador debe indicar antes del primer partido de la fase de eliminación si la usa o no. Si acierta en los ganadores de cada partido, ganará 3 veces el número de partidos acertados (Octavos: 24 puntos, Cuartos 12 puntos, etc)",
+            "in_match": false
+        }
+    ]
+}
