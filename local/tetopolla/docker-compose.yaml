@@ -5,10 +5,11 @@ services:
     image: tetopolla
     working_dir: /usr/local/src
     ports:
-      - "5006:5006"
+      - "5016:5006"
     volumes:
       - ../../src:/usr/local/src
     command: ["bokeh", "serve", "app/", "--allow-websocket-origin=*"]
+    depends_on: [ python ]
   python:
     image: tetopolla
     build:
@@ -16,4 +17,4 @@ services:
       dockerfile: tetopolla.Dockerfile
     volumes:
       - ../../src:/usr/local/src
-    entrypoint: [ "python3" ]
+    entrypoint: [ "python3", "app/migrations.py" ]
