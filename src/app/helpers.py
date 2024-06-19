@@ -140,7 +140,11 @@ def get_points(tournament_id, user=None):
             bets.match_id,
             bets.bet_score,
             matches.match_score,
-            cards.card_name
+            matches.match_history,
+            matches.match_starttime,
+            matches.match_additionals,
+            cards.card_name,
+            modifiers.modifier_datetime
         FROM
             bets
         JOIN
@@ -177,7 +181,7 @@ def get_points(tournament_id, user=None):
 
     points = {user: 0}
     for bet in bets:
-        bet_id, user_id, match_id, bet_score, match_score, card_name = bet
+        bet_id, user_id, match_id, bet_score, match_score, match_history, match_starttime, match_additionals, card_name, modifier_datetime = bet
 
         if points.get(user_id) is None:
             points[user_id] = 0
@@ -187,6 +191,24 @@ def get_points(tournament_id, user=None):
         if card_name == 'Hincha de cartón':
             b1, b2 = bet_score.split('-')
             bet_score = '-'.join([b1, b2])
+
+        if card_name == 'Profe, la hora':
+            first_half  = int(match_additionals.split(';')[0])
+            second_half = datetime.datetime.strptime(match_starttime, "%Y-%m-%d %H:%M:%S.%f") + datetime.timedelta(minutes=45+15+first_half)
+            stoptime = (datetime.datetime.strptime(modifier_datetime, "%Y-%m-%d %H:%M:%S.%f") - second_half).seconds/60
+            if stoptime > 30:
+                goals = match_history.split(';')
+                n = len(goals)
+                match_score = '0-0'
+            for k in range(n//2):
+                minute = goals[2*k][1:]
+                if '+' in minute:
+                    minute = sum([int(x) for x in minute.split('+')]) - 45
+                else:
+                    minute = int(minute) - 45
+                if minute > stoptime:
+                    break
+                match_score = goals[2*k+1]
 
         if bet_score == match_score:
             bet_points = 5
@@ -407,19 +429,20 @@ def use_card(user_id, card_id, match_id, tournament_id):
         else:
             if old_modifier[0] == 0:
                 sql = """
-                    INSERT INTO modifiers (card_id, user_id, match_id)
-                    VALUES ({card_id}, {user_id}, {match_id})
-                """.format(card_id=card_id, user_id=user_id, match_id=match_id)
+                    INSERT INTO modifiers (card_id, user_id, match_id, modifier_datetime)
+                    VALUES ({card_id}, {user_id}, {match_id}, "{modifier_datetime}")
+                """.format(card_id=card_id, user_id=user_id, match_id=match_id, modifier_datetime=current_datetime)
             else:
                 sql = """
                     UPDATE modifiers
-                    SET match_id = {match_id}
+                    SET match_id = {match_id},
+                        modifier_datetime = "{modifier_datetime}"
                     WHERE
                         user_id = {user_id}
                     AND
                         match_id = {old_match_id}
                     AND card_id = {card_id}
-                """.format(card_id=card_id, user_id=user_id, match_id=match_id, old_match_id=old_modifier[1])
+                """.format(card_id=card_id, user_id=user_id, match_id=match_id, old_match_id=old_modifier[1], modifier_datetime=current_datetime)
 
             cur = con.execute(sql)
             con.commit()
@@ -427,7 +450,42 @@ def use_card(user_id, card_id, match_id, tournament_id):
 
             return True
     else:
-        return False
+        if old_modifier[0] == 0:
+                sql = """
+                    INSERT INTO modifiers (card_id, user_id, match_id, modifier_datetime)
+                    VALUES ({card_id}, {user_id}, {match_id}, "{modifier_datetime}")
+                """.format(card_id=card_id, user_id=user_id, match_id=match_id, modifier_datetime=current_datetime)
+        else:
+            # Si la tarjeta está siendo usada en un partido que se está jugando, no se puede cambiar
+            sql = """
+                SELECT match_starttime
+                FROM   matches
+                WHERE  match_id = {match_id}
+            """.format(match_id=old_modifier[1])
+            cur = con.execute(sql)
+            match_starttime = cur.fetchone()[0]
+            
+            if current_datetime > match_starttime:
+                con.close()
+                return False
+            else:
+                sql = """
+                    UPDATE modifiers
+                    SET match_id = {match_id},
+                        modifier_datetime = "{modifier_datetime}"
+                    WHERE
+                        user_id = {user_id}
+                    AND
+                        match_id = {old_match_id}
+                    AND card_id = {card_id}
+                """.format(card_id=card_id, user_id=user_id, match_id=match_id, old_match_id=old_modifier[1], modifier_datetime=current_datetime)
+
+        cur = con.execute(sql)
+        con.commit()
+        con.close()
+
+        return True
+
 
 def get_user_cards(user_id, tournament_id):
     con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
@@ -447,3 +505,16 @@ def get_user_cards(user_id, tournament_id):
     con.close()
 
     return cards
+
+def get_usernames():
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+        SELECT user_id, user_name
+        FROM   users
+    """
+
+    cur = con.execute(sql)
+    users = cur.fetchall()
+    con.close()
+
+    return users

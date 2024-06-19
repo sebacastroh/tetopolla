@@ -79,6 +79,12 @@ select_card           = Select(title='Selecciona una tarjeta', visible=False, si
 select_match_for_card = Select(title='Selecciona un partido', visible=False, sizing_mode='stretch_width')
 div_post_card         = Div(text='', visible=False)
 
+##########################
+##  PÁGINA DE RANKINGS  ##
+##########################
+select_tournament_for_ranking = Select(title='', visible=False, sizing_mode='stretch_width')
+div_ranking                   = Div(text='', visible=False)
+
 #==========#
 #  VISTAS  #
 #==========#
@@ -108,6 +114,8 @@ def hide_all():
     select_card.update(visible=False)
     select_match_for_card.update(visible=False)
     div_post_card.update(visible=False)
+    select_tournament_for_ranking.update(visible=False)
+    div_ranking.update(visible=False)
 
 def view_init():
     hide_all()
@@ -151,9 +159,6 @@ def view_main_page():
     button_rankings.update(visible=True)
     button_tournaments.update(visible=True)
     button_rules.update(visible=True)
-
-def view_rankings():
-    pass
 
 def view_tournaments():
     global method
@@ -293,7 +298,7 @@ def view_cards():
         current_cards.update(visible=False)
 
     select_card.update(
-        options=[(card_id, card_name) for card_id, card_name in cards],
+        options=[(card_id, card_name) for card_id, card_name in cards if card_name not in ["Toby Vega", "Todos al ataque"]],
         visible=True
     )
 
@@ -338,7 +343,7 @@ def load_card(attr, old, new):
     if valid:
         matches = helpers.get_matches(tournament_id)
         select_match_for_card.update(
-            options=[(0, "Borrar")] + [(match[0], match[1] + ' vs ' + match[2]) for match in matches],
+            options=[(0, "Borrar")] + [(match[0], match[1] + ' vs ' + match[2]) for match in matches if match[3] is None],
             visible=True
         )
         button_accept.update(visible=True)
@@ -348,6 +353,44 @@ def load_card(attr, old, new):
 
 def update_card(attr, old, new):
     div_post_card.update(visible=False)
+
+def view_rankings():
+    global method
+    method = 'ranking'
+    hide_all()
+    
+    div_message.update(text='<h1>Selecciona un torneo</h1>', visible=True)
+    tournaments = helpers.get_tournaments()
+    select_tournament_for_ranking.update(
+        options=[(tournament_id, tournament_name + ' - ' + tournament_season) for tournament_id, tournament_name, tournament_season in tournaments],
+        visible=True
+    )
+
+    button_cancel.update(visible=True)
+
+def load_ranking(attr, old, new):
+
+    points    = helpers.get_points(select_tournament_for_ranking.value)
+    usernames = helpers.get_usernames()
+
+    users = {}
+    for user in usernames:
+        user_id = user[0]
+        if points.get(user_id) is None:
+            continue
+
+        users[user_id] = [user[1], points[user_id]]
+
+    positions = [[users[y[1]][0], users[y[1]][1]] for y in reversed(sorted([(users[x][1], x) for x in users.keys()]))]
+
+    ranking = '<ul>'
+    for i, position in enumerate(positions):
+        ranking += '<li>%i. %s: %i puntos</li>' %(i+1, position[0], position[1])
+    ranking += '</ul>'
+
+    div_ranking.update(text=ranking, visible=True)
+
+
 #===========#
 #  EVENTOS  #
 #===========#
@@ -412,6 +455,9 @@ def cancel():
         select_card.update(value='')
         select_match_for_card.update(value='')
         view_tournaments()
+    elif method == 'ranking':
+        select_tournament_for_ranking.update(value='')
+        view_main_page()
 
 button_signin.on_event(ButtonClick, view_signin)
 button_signup.on_event(ButtonClick, view_signup)
@@ -426,6 +472,7 @@ button_rules.on_event(ButtonClick, view_rules)
 button_cards.on_event(ButtonClick, view_cards)
 select_card.on_change('value', load_card)
 select_match_for_card.on_change('value', update_card)
+select_tournament_for_ranking.on_change('value', load_ranking)
 
 view_init()
 
@@ -454,6 +501,9 @@ curdoc().add_root(current_cards)
 curdoc().add_root(select_card)
 curdoc().add_root(select_match_for_card)
 curdoc().add_root(div_post_card)
+
+curdoc().add_root(select_tournament_for_ranking)
+curdoc().add_root(div_ranking)
 
 curdoc().add_root(row([button_accept, button_cancel]))
 curdoc().title = 'TetoPolla'

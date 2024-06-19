@@ -49,8 +49,11 @@ sql = """
     , match_starttime  TEXT NOT NULL
     , match_endtime    TEXT
     , match_score      TEXT
+    , match_phase      TEXT NOT NULL
     , match_penalties  INTEGER
     , match_winner     INTEGER
+    , match_history    TEXT
+    , match_additionals TEXT
     , tournament_id    INTEGER NOT NULL
     , FOREIGN KEY(tournament_id) REFERENCES tournaments(tournament_id)
     ) """
@@ -88,9 +91,10 @@ con.commit()
 # Tabla de modificadores
 sql = """
     CREATE TABLE IF NOT EXISTS modifiers
-    ( card_id  INTEGER NOT NULL
-    , user_id  INTEGER NOT NULL
-    , match_id INTEGER NOT NULL
+    ( card_id           INTEGER NOT NULL
+    , user_id           INTEGER NOT NULL
+    , match_id          INTEGER NOT NULL
+    , modifier_datetime TEXT
     , FOREIGN KEY(card_id) REFERENCES cards(card_id)
     , FOREIGN KEY(user_id) REFERENCES users(user_id)
     , FOREIGN KEY(match_id) REFERENCES matches(match_id)
@@ -191,26 +195,21 @@ for migration in sorted(migrations):
                     ("{team_name}", "{team_code}")
             """.format(team_name=team_name, team_code=team_code)
 
-            try:
-                con.execute(sql_team)
-                con.commit()
-            except:
-                pass
+            con.execute(sql_team)
+            con.commit()
 
         elif section == 'matches':
-            match_team_code1, match_team_code2, match_starttime = line.strip().split(',')
+            match_team_code1, match_team_code2, match_starttime, match_phase = line.strip().split(',')
 
             sql_match = """
-                INSERT INTO matches (match_team_code1, match_team_code2, match_starttime, tournament_id)
+                INSERT INTO matches (match_team_code1, match_team_code2, match_starttime, match_phase, tournament_id)
                 VALUES
-                    ("{match_team_code1}", "{match_team_code2}", "{match_starttime}", {tournament_id})
-            """.format(match_team_code1=match_team_code1, match_team_code2=match_team_code2, match_starttime=match_starttime, tournament_id=tournament_id)
+                    ("{match_team_code1}", "{match_team_code2}", "{match_starttime}", "{match_phase}", {tournament_id})
+            """.format(match_team_code1=match_team_code1, match_team_code2=match_team_code2,
+                match_starttime=match_starttime, match_phase=match_phase, tournament_id=tournament_id)
             
-            try:
-                con.execute(sql_match)
-                con.commit()
-            except:
-                pass
+            con.execute(sql_match)
+            con.commit()
 
     sql = """
         INSERT INTO migrations (migration_name)
@@ -267,11 +266,13 @@ for migration in sorted(migrations):
             cur = con.execute(sql)
             tournament_id = cur.fetchone()[0]
         elif section == 'results':
-            match_team_code1, match_team_code2, match_score = line.strip().split(',')
+            match_team_code1, match_team_code2, match_score, match_history, match_additionals = line.strip().split(',')
 
             sql = """
                 UPDATE matches
-                    SET match_score = "{match_score}"
+                    SET match_score = "{match_score}",
+                        match_history = "{match_history}",
+                        match_additionals = "{match_additionals}"
                     WHERE
                         match_team_code1 = "{match_team_code1}"
                     AND
@@ -279,7 +280,8 @@ for migration in sorted(migrations):
                     AND
                         tournament_id = {tournament_id}
             """.format(match_score=match_score, match_team_code1=match_team_code1,
-                match_team_code2=match_team_code2, tournament_id=tournament_id)
+                match_team_code2=match_team_code2, match_history=match_history,
+                match_additionals=match_additionals, tournament_id=tournament_id)
 
             con.execute(sql)
             con.commit()
