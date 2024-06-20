@@ -58,6 +58,7 @@ select_tournament = Select(title='', visible=False, sizing_mode='stretch_width')
 div_tournaments   = Div(text='', visible=False)
 button_bets       = Button(label='Apostar partidos', button_type='primary', align='end', visible=False)
 button_cards      = Button(label='Usar tarjetas', button_type='primary', align='end', visible=False)
+button_past_bets  = Button(label='Historial de apuestas', button_type='primary', align='end', visible=False)
 
 ##########################
 ##  PÁGINA DE APUESTAS  ##
@@ -103,6 +104,7 @@ def hide_all():
     div_tournaments.update(visible=False)
     button_bets.update(visible=False)
     button_cards.update(visible=False)
+    button_past_bets.update(visible=False)
     select_match.update(visible=False)
     div_team1.update(visible=False)
     input_team1.update(visible=False)
@@ -212,6 +214,7 @@ def load_tournament(attr, old, new):
     div_tournaments.update(text=html_tournaments, visible=True)
     button_bets.update(visible=True)
     button_cards.update(visible=True)
+    button_past_bets.update(visible=True)
 
 def view_bets():
     global method
@@ -354,6 +357,24 @@ def load_card(attr, old, new):
 def update_card(attr, old, new):
     div_post_card.update(visible=False)
 
+def view_past_bets():
+    global method
+    method = 'bets'
+    hide_all()
+
+    bets = helpers.get_bets(user_id, select_tournament.value)
+
+    bets_div = '<h1>A continuación se muestran las apuestas que has realizado junto al resultado final del partido</h1> <ul>'
+    for bet in bets:
+        match_team_code1, match_team_code2, bet_score, match_score = bet
+        if match_score is None:
+            match_score = 'Por jugar'
+        bets_div += '<li>' + match_team_code1 + ' vs ' + match_team_code2 + ': ' + bet_score + ' (' + match_score + ')</li>'
+    bets_div += '</ul>'
+
+    div_message.update(text=bets_div, visible=True)
+    button_cancel.update(visible=True)
+
 def view_rankings():
     global method
     method = 'ranking'
@@ -470,6 +491,7 @@ button_bets.on_event(ButtonClick, view_bets)
 select_match.on_change('value', load_match)
 button_rules.on_event(ButtonClick, view_rules)
 button_cards.on_event(ButtonClick, view_cards)
+button_past_bets.on_event(ButtonClick, view_past_bets)
 select_card.on_change('value', load_card)
 select_match_for_card.on_change('value', update_card)
 select_tournament_for_ranking.on_change('value', load_ranking)
@@ -494,6 +516,7 @@ curdoc().add_root(select_tournament)
 curdoc().add_root(div_tournaments)
 curdoc().add_root(button_bets)
 curdoc().add_root(button_cards)
+curdoc().add_root(button_past_bets)
 curdoc().add_root(select_match)
 curdoc().add_root(row_match)
 curdoc().add_root(div_post_bet)

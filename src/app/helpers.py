@@ -518,3 +518,21 @@ def get_usernames():
     con.close()
 
     return users
+
+def get_bets(user_id, tournament_id):
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+    SELECT match_team_code1, match_team_code2, bet_score, match_score
+    FROM bets
+    JOIN matches
+    ON   bets.match_id = matches.match_id
+    WHERE bets.user_id = {user_id}
+    AND   matches.tournament_id = {tournament_id}
+    ORDER BY matches.match_starttime
+    """.format(user_id=user_id, tournament_id=tournament_id)
+
+    cur = con.execute(sql)
+    bets = cur.fetchall()
+    con.close()
+
+    return bets
