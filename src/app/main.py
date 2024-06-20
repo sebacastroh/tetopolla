@@ -245,6 +245,9 @@ def view_bets():
 def load_match(attr, old, new):
     global matches
 
+    if select_tournament.value == '':
+        return
+
     div_post_bet.update(visible=False)
 
     match_id = select_match.value
