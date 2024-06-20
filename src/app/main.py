@@ -391,6 +391,9 @@ def view_rankings():
 
 def load_ranking(attr, old, new):
 
+    if select_tournament_for_ranking.value == '':
+        return
+
     points    = helpers.get_points(select_tournament_for_ranking.value)
     usernames = helpers.get_usernames()
 
