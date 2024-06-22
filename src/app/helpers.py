@@ -419,7 +419,7 @@ def use_card(user_id, card_id, match_id, tournament_id):
     used_in_another_match = cur.fetchone()
 
     if used_in_another_match[0] > 0:
-            return False    
+        return False    
 
     # Caso 2.1: la tarjeta solo se puede usar antes del partido
     if card[1] == 0:
@@ -450,6 +450,7 @@ def use_card(user_id, card_id, match_id, tournament_id):
 
             return True
     else:
+    # Caso 2.2: la tarjeta puede ser usada durante el partido
         if old_modifier[0] == 0:
                 sql = """
                     INSERT INTO modifiers (card_id, user_id, match_id, modifier_datetime)

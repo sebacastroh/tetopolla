@@ -3,7 +3,7 @@
         {
             "name": "Profe, la hora",
             "description": "El jugador puede utilizar esta tarjeta a partir del minuto 76 (75:01), con lo cual se considerará el resultado actual del partido para su planilla, aunque después el resultado pueda cambiar",
-            "in_match": false
+            "in_match": true
         },
         {
             "name": "Doblete",
