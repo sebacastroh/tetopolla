@@ -1,0 +1,4 @@
+# Torneo
+Eurocopa,2024
+# Resultados
+NED,FRA,0-0,,1;5
