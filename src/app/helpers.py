@@ -537,3 +537,71 @@ def get_bets(user_id, tournament_id):
     con.close()
 
     return bets
+
+def get_teams(tournament_id):
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+    SELECT teams.team_code, teams.team_name
+    FROM teams
+    JOIN tournaments_teams
+    ON   teams.team_id = tournaments_teams.team_id
+    WHERE tournaments_teams.tournament_id = {tournament_id}
+    ORDER BY teams.team_name
+    """.format(tournament_id=tournament_id)
+
+    cur = con.execute(sql)
+    teams = cur.fetchall()
+    con.close()
+
+    return teams
+
+def get_rounds():
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+    SELECT round_code, round_name
+    FROM   rounds
+    """
+
+    cur = con.execute(sql)
+    rounds = cur.fetchall()
+    con.close()
+
+    return rounds
+
+def add_match(user_id, tournament_id, match_team_code1, match_team_code2, match_starttime, match_phase):
+
+    if match_team_code1 == '' or match_team_code2 == '' or match_team_code1 == match_team_code2:
+        return False
+
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    
+    sql = """
+    SELECT COUNT(*)
+    FROM   matches
+    WHERE  match_team_code1 = "{match_team_code1}"
+    AND    match_team_code2 = "{match_team_code2}"
+    AND    tournament_id    = {tournament_id}
+    AND    match_phase      = "{match_phase}"
+    """.format(tournament_id=tournament_id, match_team_code1=match_team_code1, match_team_code2=match_team_code2, match_phase=match_phase)
+
+    cur = con.execute(sql)
+    count = cur.fetchone()[0]
+
+    if count > 0:
+        con.close()
+        return False
+
+    try:
+        sql = """
+        INSERT INTO matches (match_team_code1, match_team_code2, match_starttime, match_phase, tournament_id)
+        VALUES ("{match_team_code1}", "{match_team_code2}", "{match_starttime}", "{match_phase}", {tournament_id})
+        """.format(tournament_id=tournament_id, match_team_code1=match_team_code1, match_team_code2=match_team_code2, match_phase=match_phase, match_starttime=match_starttime)
+
+        con.execute(sql)
+        con.commit()
+        con.close()
+
+        return True
+    except:
+        con.close()
+        return False
