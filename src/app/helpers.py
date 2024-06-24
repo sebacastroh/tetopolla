@@ -75,12 +75,14 @@ def get_tournaments():
 def get_match(match_id, user_id=None):
     con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
     sql = """
-        SELECT matches.match_id, match_team_code1, match_team_code2, match_score, match_starttime, team1.team_name AS team_name1, team2.team_name AS team_name2, bets.bet_score
+        SELECT matches.match_id, match_team_code1, match_team_code2, match_score, match_starttime, team1.team_name AS team_name1, team2.team_name AS team_name2, bets.bet_score, match_history, match_additionals, users.user_name
         FROM   matches
         JOIN   teams AS team1
         ON     matches.match_team_code1 = team1.team_code
         JOIN   teams AS team2
         ON     matches.match_team_code2 = team2.team_code
+        LEFT JOIN   users
+        ON     matches.user_id = users.user_id
         LEFT JOIN bets
         ON     matches.match_id = bets.match_id
         AND    bets.user_id = {user_id}
@@ -605,3 +607,19 @@ def add_match(user_id, tournament_id, match_team_code1, match_team_code2, match_
     except:
         con.close()
         return False
+
+def update_result(user_id, match_id, match_history, match_additionals, match_score):
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+
+    sql = """
+    UPDATE matches
+    SET    match_history = "{match_history}",
+           match_additionals = "{match_additionals}",
+           match_score = "{match_score}",
+           user_id = {user_id}
+    WHERE  match_id = {match_id}
+    """.format(match_id=match_id, match_history=match_history, match_additionals=match_additionals, match_score=match_score, user_id=user_id)
+
+    con.execute(sql)
+    con.commit()
+    con.close()

@@ -67,7 +67,9 @@ sql = """
     , match_history    TEXT
     , match_additionals TEXT
     , tournament_id    INTEGER NOT NULL
+    , user_id          INTEGER NOT NULL
     , FOREIGN KEY(tournament_id) REFERENCES tournaments(tournament_id)
+    , FOREIGN KEY(user_id) REFERENCES users(user_id)
     ) """
 con.execute(sql)
 con.commit()

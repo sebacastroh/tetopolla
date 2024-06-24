@@ -96,6 +96,14 @@ select_datetime   = DatetimePicker(title='Selecciona hora y fecha del partido (h
 select_phase      = Select(title='Selecciona la fase', visible=False, sizing_mode='stretch_width')
 div_post_settings = Div(text='', visible=False)
 
+############################
+##  PÁGINA DE RESULTADOS  ##
+############################
+select_match_for_settings = Select(title='Selecciona un partido', visible=False, sizing_mode='stretch_width')
+text_history     = TextInput(title='Escribe la historia del partido', placeholder='Ej: M15;1-0;M45+2;2-0;M75;2-1', visible=False, sizing_mode='stretch_width')
+text_additionals = TextInput(title='Indica los minutos adicionados', placeholder='Ej: 1;5', visible=False, sizing_mode='stretch_width')
+text_results     = TextInput(title='Resultado final del partido', placeholder='Ej: 2-1', visible=False, sizing_mode='stretch_width')
+
 ##########################
 ##  PÁGINA DE RANKINGS  ##
 ##########################
@@ -142,6 +150,10 @@ def hide_all():
     select_datetime.update(visible=False)
     select_phase.update(visible=False)
     div_post_settings.update(visible=False)
+    select_match_for_settings.update(visible=False)
+    text_history.update(visible=False)
+    text_additionals.update(visible=False)
+    text_results.update(visible=False)
 
 def view_init():
     hide_all()
@@ -473,6 +485,45 @@ def view_new_match():
     button_accept.update(visible=True)
     button_cancel.update(visible=True)
 
+def view_set_result():
+    hide_all()
+    global method
+    method = 'set_result'
+
+    div_message.update(text='<h2>Selecciona un partido. Ahí podrás modificar su historia, minutos adicionados y resultado final.' + \
+        ' Todos los inputs deben ser sin espacios.</h2>', visible=True)
+
+    matches = helpers.get_matches(select_tournament.value)
+    select_match_for_settings.update(
+        options=[(match[0], match[1] + ' vs ' + match[2]) for match in matches],
+        visible=True
+    )
+
+    button_cancel.update(visible=True)
+
+def load_match_result(attr, old, new):
+    
+    if select_match_for_settings.value == '':
+        return
+
+    match = helpers.get_match(select_match_for_settings.value, "NULL")
+
+    match_id, match_team_code1, match_team_code2, match_score, match_starttime, team_name1, team_name2, bet_score, match_history, match_additionals, match_user_name = match
+
+    if match_user_name is not None:
+        div_message.update(text='<h2>Selecciona un partido. Ahí podrás modificar su historia, minutos adicionados y resultado final.' + \
+        ' Todos los inputs deben ser sin espacios.</h2> <h3>Información ingresada por %s</h3>' %match_user_name, visible=True)
+    else:
+        div_message.update(text='<h2>Selecciona un partido. Ahí podrás modificar su historia, minutos adicionados y resultado final.' + \
+        ' Todos los inputs deben ser sin espacios.</h2>', visible=True)
+
+    text_history.update(value=match_history if match_history else '', visible=True)
+    text_additionals.update(value=match_additionals if match_additionals else '', visible=True)
+    text_results.update(value=match_score if match_score else '', visible=True)
+
+    button_accept.update(visible=True)
+
+
 #===========#
 #  EVENTOS  #
 #===========#
@@ -527,6 +578,11 @@ def accept():
         else:
             div_post_settings.update(text='<h3>Ha habido un error. Verifica que el mismo partido no haya sido registrado antes.</h3>', visible=True)
 
+    elif method == 'set_result':
+        status = helpers.update_result(user_id, select_match_for_settings.value, text_history.value, text_additionals.value, text_results.value)
+        div_post_settings.update(text='<h3>Partido actualizado exitosamente</h3>', visible=True)
+
+
 
 def cancel():
     global method
@@ -553,7 +609,7 @@ def cancel():
     elif method == 'settings':
         select_tournament.update(value='')
         view_tournaments()
-    elif method == 'new_match':
+    elif method == 'new_match' or method == 'set_result':
         view_settings()
 
 button_signin.on_event(ButtonClick, view_signin)
@@ -573,7 +629,8 @@ select_match_for_card.on_change('value', update_card)
 select_tournament_for_ranking.on_change('value', load_ranking)
 button_settings.on_event(ButtonClick, view_settings)
 button_add_match.on_event(ButtonClick, view_new_match)
-# button_set_match_result.on_event(ButtonClick, view_set_result)
+button_set_match_result.on_event(ButtonClick, view_set_result)
+select_match_for_settings.on_change('value', load_match_result)
 
 view_init()
 
@@ -610,6 +667,12 @@ curdoc().add_root(select_team1)
 curdoc().add_root(select_team2)
 curdoc().add_root(select_datetime)
 curdoc().add_root(select_phase)
+
+curdoc().add_root(select_match_for_settings)
+curdoc().add_root(text_history)
+curdoc().add_root(text_additionals)
+curdoc().add_root(text_results)
+
 curdoc().add_root(div_post_settings)
 
 curdoc().add_root(button_set_match_result)
