@@ -192,7 +192,7 @@ def get_points(tournament_id, user=None):
 
         if card_name == 'Hincha de cartón':
             b1, b2 = bet_score.split('-')
-            bet_score = '-'.join([b1, b2])
+            bet_score = '-'.join([b2, b1])
 
         if card_name == 'Profe, la hora':
             first_half  = int(match_additionals.split(';')[0])
