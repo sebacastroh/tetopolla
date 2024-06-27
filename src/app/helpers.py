@@ -339,6 +339,20 @@ def use_card(user_id, card_id, match_id, tournament_id):
     current_datetime = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=chileoffset)
     current_datetime = current_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
 
+    # Obtenemos la fase del partido
+    if match_id > 0:
+        sql = """
+        SELECT match_phase
+        FROM   matches
+        WHERE  match_id = {match_id}
+        """.format(match_id=match_id)
+        cur = con.execute(sql)
+        match_phase = cur.fetchone()[0]
+        if match_phase == 'group':
+            match_phases = '("group")'
+        else:
+            match_phases = '("r32", "r16", "r8", "semi", "3rd4th", "final")'
+
     # Caso 1: borrar tarjeta
     if match_id == 0:
         sql = """
@@ -383,7 +397,8 @@ def use_card(user_id, card_id, match_id, tournament_id):
         WHERE  modifiers.user_id = {user_id}
         AND    modifiers.card_id = {card_id}
         AND    matches.tournament_id = {tournament_id}
-    """.format(user_id=user_id, card_id=card_id, tournament_id=tournament_id)
+        AND    matches.match_phase IN {match_phases}
+    """.format(user_id=user_id, card_id=card_id, tournament_id=tournament_id, match_phases=match_phases)
 
     cur = con.execute(sql)
     old_modifier = cur.fetchone()
@@ -418,9 +433,9 @@ def use_card(user_id, card_id, match_id, tournament_id):
     """.format(user_id=user_id, match_id=match_id, card_id=card_id)
 
     cur = con.execute(sql)
-    used_in_another_match = cur.fetchone()
+    another_card_used_in_match = cur.fetchone()
 
-    if used_in_another_match[0] > 0:
+    if another_card_used_in_match[0] > 0:
         return False    
 
     # Caso 2.1: la tarjeta solo se puede usar antes del partido

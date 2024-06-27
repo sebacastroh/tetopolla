@@ -370,28 +370,12 @@ def load_card(attr, old, new):
     select_match_for_card.update(visible=False)
     div_post_card.update(visible=False)
     used_card = helpers.get_card(user_id, tournament_id, select_card.value)
-    
-    if used_card[0] == 0:
-        valid = True
-    elif used_card[2] == 1:
-        valid = False
-    else:
-        current_datetime = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=chileoffset)
-        current_datetime = current_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
-        if used_card[1] <= current_datetime:
-            valid = False
-        else:
-            valid = True
-
-    if valid:
-        matches = helpers.get_matches(tournament_id)
-        select_match_for_card.update(
-            options=[(0, "Borrar")] + [(match[0], match[1] + ' vs ' + match[2]) for match in matches if match[3] is None],
-            visible=True
-        )
-        button_accept.update(visible=True)
-    else:
-        div_post_card.update(text='No puedes usar esta tarjeta', visible=True)
+    matches = helpers.get_matches(tournament_id)
+    select_match_for_card.update(
+        options=[(0, "Borrar")] + [(match[0], match[1] + ' vs ' + match[2]) for match in matches if match[3] is None],
+        visible=True
+    )
+    button_accept.update(visible=True)
 
 
 def update_card(attr, old, new):
