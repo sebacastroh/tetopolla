@@ -1,0 +1,4 @@
+# Torneo
+Eurocopa,2024
+# Resultados
+GEO,CZE,1-1,M45+4;1-0;M59;1-1,2;5

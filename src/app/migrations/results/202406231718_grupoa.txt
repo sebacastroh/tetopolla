@@ -1,0 +1,5 @@
+# Torneo
+Eurocopa,2024
+# Resultados
+SUI,GER,1-1,M28;1-0;M90+2;1-1,2;4
+SCO,HUN,0-1,M90+10;0-1,1;10

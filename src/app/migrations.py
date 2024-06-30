@@ -40,6 +40,18 @@ sql = """
 con.execute(sql)
 con.commit()
 
+# Tabla de equipos en un torneo
+sql = """
+    CREATE TABLE IF NOT EXISTS tournaments_teams
+    ( tournament_id INTEGER NOT NULL
+    , team_id       INTEGER NOT NULL
+    , UNIQUE(tournament_id, team_id)
+    , FOREIGN KEY(tournament_id) REFERENCES tournaments(tournament_id)
+    , FOREIGN KEY(team_id) REFERENCES teams(team_id)
+    ) """
+con.execute(sql)
+con.commit()
+
 # Tabla de partidos
 sql = """
     CREATE TABLE IF NOT EXISTS matches
@@ -55,7 +67,9 @@ sql = """
     , match_history    TEXT
     , match_additionals TEXT
     , tournament_id    INTEGER NOT NULL
+    , user_id          INTEGER
     , FOREIGN KEY(tournament_id) REFERENCES tournaments(tournament_id)
+    , FOREIGN KEY(user_id) REFERENCES users(user_id)
     ) """
 con.execute(sql)
 con.commit()
@@ -103,6 +117,18 @@ sql = """
 con.execute(sql)
 con.commit()
 
+# Tabla de fases
+sql = """
+    CREATE TABLE IF NOT EXISTS rounds
+    ( round_id   INTEGER PRIMARY KEY AUTOINCREMENT
+    , round_name TEXT NOT NULL
+    , round_code TEXT NOT NULL
+    , UNIQUE(round_code)
+    ) """
+
+con.execute(sql)
+con.commit()
+
 # Tabla de migraciones
 sql = """
     CREATE TABLE IF NOT EXISTS migrations
@@ -121,6 +147,20 @@ for card in cards.get('cards'):
         INSERT INTO cards (card_name, card_description, card_in_match)
         VALUES ("{card_name}", "{card_description}", {card_in_match})
     """.format(card_name=card.get('name'), card_description=card.get('description'), card_in_match=int(card.get('in_match')))
+    try:
+        con.execute(sql)
+        con.commit()
+    except:
+        pass
+
+with open(os.path.join(migrPath, 'base', 'rounds.json')) as f:
+    rounds = json.load(f)
+
+for round_ in rounds.get('rounds'):
+    sql = """
+        INSERT INTO rounds (round_name, round_code)
+        VALUES ("{round_name}", "{round_code}")
+    """.format(round_name=round_.get('name'), round_code=round_.get('code'))
     try:
         con.execute(sql)
         con.commit()
@@ -147,6 +187,8 @@ for migration in sorted(migrations):
 
     with open(os.path.join(migrPath, 'tournaments', migration)) as f:
         lines = f.readlines()
+
+    team_codes = []
 
     for line in lines:
         if line.startswith('# Torneo'):
@@ -197,6 +239,7 @@ for migration in sorted(migrations):
 
             con.execute(sql_team)
             con.commit()
+            team_codes.append(team_code)
 
         elif section == 'matches':
             match_team_code1, match_team_code2, match_starttime, match_phase = line.strip().split(',')
@@ -210,6 +253,24 @@ for migration in sorted(migrations):
             
             con.execute(sql_match)
             con.commit()
+
+    for team_code in team_codes:
+        sql = """
+        SELECT team_id
+        FROM   teams
+        WHERE  team_code = "{team_code}"
+        """.format(team_code=team_code)
+
+        cur = con.execute(sql)
+        team_id = cur.fetchone()[0]
+
+        sql = """
+        INSERT INTO tournaments_teams (tournament_id, team_id)
+        VALUES ({tournament_id}, {team_id})
+        """.format(tournament_id=tournament_id, team_id=team_id)
+
+        con.execute(sql)
+        con.commit()
 
     sql = """
         INSERT INTO migrations (migration_name)
