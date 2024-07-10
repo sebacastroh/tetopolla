@@ -1,0 +1,32 @@
+{
+    "rounds": [
+        {
+            "name": "Grupos",
+            "code": "group"
+        },
+        {
+            "name": "16avos de final",
+            "code": "r32"
+        },
+        {
+            "name": "Octavos de final",
+            "code": "r16"
+        },
+        {
+            "name": "Cuartos de final",
+            "code": "r8"
+        },
+        {
+            "name": "Semifinal",
+            "code": "semi"
+        },
+        {
+            "name": "Tercer y cuarto puesto",
+            "code": "3rd4th"
+        },
+        {
+            "name": "Final",
+            "code": "final"
+        }
+    ]
+}

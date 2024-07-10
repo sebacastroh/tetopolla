@@ -6,7 +6,7 @@ import datetime
 from bokeh.io import curdoc
 from bokeh.events import ButtonClick
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Div, Slider, TextInput
+from bokeh.models import ColumnDataSource, DatetimePicker, Div, Slider, TextInput
 from bokeh.models.widgets import Button, Select, NumericInput
 
 from jinja2 import Environment, FileSystemLoader
@@ -58,6 +58,8 @@ select_tournament = Select(title='', visible=False, sizing_mode='stretch_width')
 div_tournaments   = Div(text='', visible=False)
 button_bets       = Button(label='Apostar partidos', button_type='primary', align='end', visible=False)
 button_cards      = Button(label='Usar tarjetas', button_type='primary', align='end', visible=False)
+button_past_bets  = Button(label='Historial de apuestas', button_type='primary', align='end', visible=False)
+button_settings   = Button(label='Configuración', button_type='primary', align='end', visible=False)
 
 ##########################
 ##  PÁGINA DE APUESTAS  ##
@@ -78,6 +80,29 @@ current_cards         = Div(text='', visible=False)
 select_card           = Select(title='Selecciona una tarjeta', visible=False, sizing_mode='stretch_width')
 select_match_for_card = Select(title='Selecciona un partido', visible=False, sizing_mode='stretch_width')
 div_post_card         = Div(text='', visible=False)
+
+#########################################
+##  PÁGINA DE CONFIGURACIÓN DE TORNEO  ##
+#########################################
+button_add_match        = Button(label='Crear partido en el torneo', button_type='primary', align='end', visible=False)
+button_set_match_result = Button(label='Agregar o modificar resultados', button_type='primary', align='end', visible=False)
+
+###############################
+##  PÁGINA DE NUEVO PARTIDO  ##
+###############################
+select_team1      = Select(title='Selecciona el primer equipo', visible=False, sizing_mode='stretch_width')
+select_team2      = Select(title='Selecciona el segundo equipo', visible=False, sizing_mode='stretch_width')
+select_datetime   = DatetimePicker(title='Selecciona hora y fecha del partido (hora de Chile)', visible=False, sizing_mode='stretch_width')
+select_phase      = Select(title='Selecciona la fase', visible=False, sizing_mode='stretch_width')
+div_post_settings = Div(text='', visible=False)
+
+############################
+##  PÁGINA DE RESULTADOS  ##
+############################
+select_match_for_settings = Select(title='Selecciona un partido', visible=False, sizing_mode='stretch_width')
+text_history     = TextInput(title='Escribe la historia del partido', placeholder='Ej: M15;1-0;M45+2;2-0;M75;2-1', visible=False, sizing_mode='stretch_width')
+text_additionals = TextInput(title='Indica los minutos adicionados', placeholder='Ej: 1;5', visible=False, sizing_mode='stretch_width')
+text_results     = TextInput(title='Resultado final del partido', placeholder='Ej: 2-1', visible=False, sizing_mode='stretch_width')
 
 ##########################
 ##  PÁGINA DE RANKINGS  ##
@@ -103,6 +128,8 @@ def hide_all():
     div_tournaments.update(visible=False)
     button_bets.update(visible=False)
     button_cards.update(visible=False)
+    button_past_bets.update(visible=False)
+    button_settings.update(visible=False)
     select_match.update(visible=False)
     div_team1.update(visible=False)
     input_team1.update(visible=False)
@@ -116,6 +143,17 @@ def hide_all():
     div_post_card.update(visible=False)
     select_tournament_for_ranking.update(visible=False)
     div_ranking.update(visible=False)
+    button_add_match.update(visible=False)
+    button_set_match_result.update(visible=False)
+    select_team1.update(visible=False)
+    select_team2.update(visible=False)
+    select_datetime.update(visible=False)
+    select_phase.update(visible=False)
+    div_post_settings.update(visible=False)
+    select_match_for_settings.update(visible=False)
+    text_history.update(visible=False)
+    text_additionals.update(visible=False)
+    text_results.update(visible=False)
 
 def view_init():
     hide_all()
@@ -212,6 +250,8 @@ def load_tournament(attr, old, new):
     div_tournaments.update(text=html_tournaments, visible=True)
     button_bets.update(visible=True)
     button_cards.update(visible=True)
+    button_past_bets.update(visible=True)
+    button_settings.update(visible=True)
 
 def view_bets():
     global method
@@ -232,7 +272,7 @@ def view_bets():
     matches = helpers.get_matches(tournament_id, current_datetime)
 
     select_match.update(
-        options=[(match[0], match[1] + ' vs ' + match[2]) for match in matches],
+        options=[(match[0], match[1] + ' vs ' + match[2] + ' - ' + match[5]) for match in matches],
         visible=True
     )
 
@@ -241,6 +281,9 @@ def view_bets():
 
 def load_match(attr, old, new):
     global matches
+
+    if select_tournament.value == '':
+        return
 
     div_post_bet.update(visible=False)
 
@@ -327,32 +370,34 @@ def load_card(attr, old, new):
     select_match_for_card.update(visible=False)
     div_post_card.update(visible=False)
     used_card = helpers.get_card(user_id, tournament_id, select_card.value)
-    
-    if used_card[0] == 0:
-        valid = True
-    elif used_card[2] == 1:
-        valid = False
-    else:
-        current_datetime = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=chileoffset)
-        current_datetime = current_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
-        if used_card[1] <= current_datetime:
-            valid = False
-        else:
-            valid = True
-
-    if valid:
-        matches = helpers.get_matches(tournament_id)
-        select_match_for_card.update(
-            options=[(0, "Borrar")] + [(match[0], match[1] + ' vs ' + match[2]) for match in matches if match[3] is None],
-            visible=True
-        )
-        button_accept.update(visible=True)
-    else:
-        div_post_card.update(text='No puedes usar esta tarjeta', visible=True)
+    matches = helpers.get_matches(tournament_id)
+    select_match_for_card.update(
+        options=[(0, "Borrar")] + [(match[0], match[1] + ' vs ' + match[2]) for match in matches if match[3] is None],
+        visible=True
+    )
+    button_accept.update(visible=True)
 
 
 def update_card(attr, old, new):
     div_post_card.update(visible=False)
+
+def view_past_bets():
+    global method
+    method = 'bets'
+    hide_all()
+
+    bets = helpers.get_bets(user_id, select_tournament.value)
+
+    bets_div = '<h1>A continuación se muestran las apuestas que has realizado junto al resultado final del partido</h1> <ul>'
+    for bet in bets:
+        match_team_code1, match_team_code2, bet_score, match_score = bet
+        if match_score is None:
+            match_score = 'Por jugar'
+        bets_div += '<li>' + match_team_code1 + ' vs ' + match_team_code2 + ': ' + bet_score + ' (' + match_score + ')</li>'
+    bets_div += '</ul>'
+
+    div_message.update(text=bets_div, visible=True)
+    button_cancel.update(visible=True)
 
 def view_rankings():
     global method
@@ -369,6 +414,9 @@ def view_rankings():
     button_cancel.update(visible=True)
 
 def load_ranking(attr, old, new):
+
+    if select_tournament_for_ranking.value == '':
+        return
 
     points    = helpers.get_points(select_tournament_for_ranking.value)
     usernames = helpers.get_usernames()
@@ -389,6 +437,75 @@ def load_ranking(attr, old, new):
     ranking += '</ul>'
 
     div_ranking.update(text=ranking, visible=True)
+
+
+def view_settings():
+    hide_all()
+    global method
+    method = 'settings'
+
+    div_message.update(text='<h2>Selecciona una opción para configurar el torneo. Esto afectará a todos los jugadores. ' + \
+        'La fecha, hora y el nombre del usuario responsable quedará registrado, sé responsable, pasemos un buen rato ;-).</h2>', visible=True)
+
+    button_add_match.update(visible=True)
+    button_set_match_result.update(visible=True)
+    button_cancel.update(visible=True)
+
+def view_new_match():
+    hide_all()
+    global method
+    method = 'new_match'
+
+    div_message.update(text='<h2>Selecciona los dos equipos que jugarán, la fase y haz clic en Aceptar. Si el partido ya existe se te avisará</h2>', visible=True)
+
+    teams  = helpers.get_teams(select_tournament.value)
+    rounds = helpers.get_rounds()
+
+    select_team1.update(options=[(team_code, team_name) for team_code, team_name in teams], visible=True)
+    select_team2.update(options=[(team_code, team_name) for team_code, team_name in teams], visible=True)
+    select_datetime.update(visible=True)
+    select_phase.update(options=[(round_code, round_name) for round_code, round_name in rounds], visible=True)
+
+    button_accept.update(visible=True)
+    button_cancel.update(visible=True)
+
+def view_set_result():
+    hide_all()
+    global method
+    method = 'set_result'
+
+    div_message.update(text='<h2>Selecciona un partido. Ahí podrás modificar su historia, minutos adicionados y resultado final.' + \
+        ' Todos los inputs deben ser sin espacios.</h2>', visible=True)
+
+    matches = helpers.get_matches(select_tournament.value)
+    select_match_for_settings.update(
+        options=[(match[0], match[1] + ' vs ' + match[2] + ' - ' + match[5]) for match in matches],
+        visible=True
+    )
+
+    button_cancel.update(visible=True)
+
+def load_match_result(attr, old, new):
+    
+    if select_match_for_settings.value == '':
+        return
+
+    match = helpers.get_match(select_match_for_settings.value, "NULL")
+
+    match_id, match_team_code1, match_team_code2, match_score, match_starttime, team_name1, team_name2, bet_score, match_history, match_additionals, match_user_name = match
+
+    if match_user_name is not None:
+        div_message.update(text='<h2>Selecciona un partido. Ahí podrás modificar su historia, minutos adicionados y resultado final.' + \
+        ' Todos los inputs deben ser sin espacios.</h2> <h3>Información ingresada por %s</h3>' %match_user_name, visible=True)
+    else:
+        div_message.update(text='<h2>Selecciona un partido. Ahí podrás modificar su historia, minutos adicionados y resultado final.' + \
+        ' Todos los inputs deben ser sin espacios.</h2>', visible=True)
+
+    text_history.update(value=match_history if match_history else '', visible=True)
+    text_additionals.update(value=match_additionals if match_additionals else '', visible=True)
+    text_results.update(value=match_score if match_score else '', visible=True)
+
+    button_accept.update(visible=True)
 
 
 #===========#
@@ -435,6 +552,21 @@ def accept():
         else:
             div_post_card.update(text='<h3>No se puede usar o actualizar la tarjeta. Recuerda que si el partido ya empezó o terminó no la puedes desactivar.</h3>', visible=True)
 
+    elif method == 'new_match':
+        if select_team1.value is not None and select_team2.value is not None and select_datetime.value is not None and select_phase.value is not None:
+            status = helpers.add_match(user_id, select_tournament.value, select_team1.value, select_team2.value,
+                datetime.datetime.fromtimestamp(select_datetime.value/1000).strftime('%Y-%m-%d %H:%M:%S.%f'), select_phase.value)
+
+        if status:
+            div_post_settings.update(text='<h3>Partido registrado exitosamente</h3>', visible=True)
+        else:
+            div_post_settings.update(text='<h3>Ha habido un error. Verifica que el mismo partido no haya sido registrado antes.</h3>', visible=True)
+
+    elif method == 'set_result':
+        status = helpers.update_result(user_id, select_match_for_settings.value, text_history.value, text_additionals.value, text_results.value)
+        div_post_settings.update(text='<h3>Partido actualizado exitosamente</h3>', visible=True)
+
+
 
 def cancel():
     global method
@@ -458,6 +590,11 @@ def cancel():
     elif method == 'ranking':
         select_tournament_for_ranking.update(value='')
         view_main_page()
+    elif method == 'settings':
+        select_tournament.update(value='')
+        view_tournaments()
+    elif method == 'new_match' or method == 'set_result':
+        view_settings()
 
 button_signin.on_event(ButtonClick, view_signin)
 button_signup.on_event(ButtonClick, view_signup)
@@ -470,9 +607,14 @@ button_bets.on_event(ButtonClick, view_bets)
 select_match.on_change('value', load_match)
 button_rules.on_event(ButtonClick, view_rules)
 button_cards.on_event(ButtonClick, view_cards)
+button_past_bets.on_event(ButtonClick, view_past_bets)
 select_card.on_change('value', load_card)
 select_match_for_card.on_change('value', update_card)
 select_tournament_for_ranking.on_change('value', load_ranking)
+button_settings.on_event(ButtonClick, view_settings)
+button_add_match.on_event(ButtonClick, view_new_match)
+button_set_match_result.on_event(ButtonClick, view_set_result)
+select_match_for_settings.on_change('value', load_match_result)
 
 view_init()
 
@@ -494,6 +636,7 @@ curdoc().add_root(select_tournament)
 curdoc().add_root(div_tournaments)
 curdoc().add_root(button_bets)
 curdoc().add_root(button_cards)
+curdoc().add_root(button_past_bets)
 curdoc().add_root(select_match)
 curdoc().add_root(row_match)
 curdoc().add_root(div_post_bet)
@@ -501,6 +644,22 @@ curdoc().add_root(current_cards)
 curdoc().add_root(select_card)
 curdoc().add_root(select_match_for_card)
 curdoc().add_root(div_post_card)
+
+curdoc().add_root(button_settings)
+curdoc().add_root(button_add_match)
+curdoc().add_root(select_team1)
+curdoc().add_root(select_team2)
+curdoc().add_root(select_datetime)
+curdoc().add_root(select_phase)
+
+curdoc().add_root(select_match_for_settings)
+curdoc().add_root(text_history)
+curdoc().add_root(text_additionals)
+curdoc().add_root(text_results)
+
+curdoc().add_root(div_post_settings)
+
+curdoc().add_root(button_set_match_result)
 
 curdoc().add_root(select_tournament_for_ranking)
 curdoc().add_root(div_ranking)

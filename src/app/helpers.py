@@ -75,12 +75,14 @@ def get_tournaments():
 def get_match(match_id, user_id=None):
     con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
     sql = """
-        SELECT matches.match_id, match_team_code1, match_team_code2, match_score, match_starttime, team1.team_name AS team_name1, team2.team_name AS team_name2, bets.bet_score
+        SELECT matches.match_id, match_team_code1, match_team_code2, match_score, match_starttime, team1.team_name AS team_name1, team2.team_name AS team_name2, bets.bet_score, match_history, match_additionals, users.user_name
         FROM   matches
         JOIN   teams AS team1
         ON     matches.match_team_code1 = team1.team_code
         JOIN   teams AS team2
         ON     matches.match_team_code2 = team2.team_code
+        LEFT JOIN   users
+        ON     matches.user_id = users.user_id
         LEFT JOIN bets
         ON     matches.match_id = bets.match_id
         AND    bets.user_id = {user_id}
@@ -96,7 +98,7 @@ def get_match(match_id, user_id=None):
 def get_matches(tournament_id, starttime=None):
     con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
     sql = """
-        SELECT match_id, match_team_code1, match_team_code2, match_score, match_starttime
+        SELECT match_id, match_team_code1, match_team_code2, match_score, match_starttime, match_phase
         FROM   matches
         WHERE
             tournament_id = {tournament_id}
@@ -190,7 +192,7 @@ def get_points(tournament_id, user=None):
 
         if card_name == 'Hincha de cartón':
             b1, b2 = bet_score.split('-')
-            bet_score = '-'.join([b1, b2])
+            bet_score = '-'.join([b2, b1])
 
         if card_name == 'Profe, la hora':
             first_half  = int(match_additionals.split(';')[0])
@@ -227,9 +229,9 @@ def get_points(tournament_id, user=None):
             bet_points += goals
         elif card_name == 'A morir':
             if bet_score == match_score:
-                bet_points += 20
+                bet_points = 20
             else:
-                bet_points -= 10
+                bet_points = -10
 
         points[user_id] += bet_points
 
@@ -337,6 +339,20 @@ def use_card(user_id, card_id, match_id, tournament_id):
     current_datetime = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=chileoffset)
     current_datetime = current_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
 
+    # Obtenemos la fase del partido
+    if match_id > 0:
+        sql = """
+        SELECT match_phase
+        FROM   matches
+        WHERE  match_id = {match_id}
+        """.format(match_id=match_id)
+        cur = con.execute(sql)
+        match_phase = cur.fetchone()[0]
+        if match_phase == 'group':
+            match_phases = '("group")'
+        else:
+            match_phases = '("r32", "r16", "r8", "semi", "3rd4th", "final")'
+
     # Caso 1: borrar tarjeta
     if match_id == 0:
         sql = """
@@ -381,7 +397,8 @@ def use_card(user_id, card_id, match_id, tournament_id):
         WHERE  modifiers.user_id = {user_id}
         AND    modifiers.card_id = {card_id}
         AND    matches.tournament_id = {tournament_id}
-    """.format(user_id=user_id, card_id=card_id, tournament_id=tournament_id)
+        AND    matches.match_phase IN {match_phases}
+    """.format(user_id=user_id, card_id=card_id, tournament_id=tournament_id, match_phases=match_phases)
 
     cur = con.execute(sql)
     old_modifier = cur.fetchone()
@@ -416,10 +433,10 @@ def use_card(user_id, card_id, match_id, tournament_id):
     """.format(user_id=user_id, match_id=match_id, card_id=card_id)
 
     cur = con.execute(sql)
-    used_in_another_match = cur.fetchone()
+    another_card_used_in_match = cur.fetchone()
 
-    if used_in_another_match[0] > 0:
-            return False    
+    if another_card_used_in_match[0] > 0:
+        return False    
 
     # Caso 2.1: la tarjeta solo se puede usar antes del partido
     if card[1] == 0:
@@ -450,6 +467,7 @@ def use_card(user_id, card_id, match_id, tournament_id):
 
             return True
     else:
+    # Caso 2.2: la tarjeta puede ser usada durante el partido
         if old_modifier[0] == 0:
                 sql = """
                     INSERT INTO modifiers (card_id, user_id, match_id, modifier_datetime)
@@ -518,3 +536,105 @@ def get_usernames():
     con.close()
 
     return users
+
+def get_bets(user_id, tournament_id):
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+    SELECT match_team_code1, match_team_code2, bet_score, match_score
+    FROM bets
+    JOIN matches
+    ON   bets.match_id = matches.match_id
+    WHERE bets.user_id = {user_id}
+    AND   matches.tournament_id = {tournament_id}
+    ORDER BY matches.match_starttime
+    """.format(user_id=user_id, tournament_id=tournament_id)
+
+    cur = con.execute(sql)
+    bets = cur.fetchall()
+    con.close()
+
+    return bets
+
+def get_teams(tournament_id):
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+    SELECT teams.team_code, teams.team_name
+    FROM teams
+    JOIN tournaments_teams
+    ON   teams.team_id = tournaments_teams.team_id
+    WHERE tournaments_teams.tournament_id = {tournament_id}
+    ORDER BY teams.team_name
+    """.format(tournament_id=tournament_id)
+
+    cur = con.execute(sql)
+    teams = cur.fetchall()
+    con.close()
+
+    return teams
+
+def get_rounds():
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    sql = """
+    SELECT round_code, round_name
+    FROM   rounds
+    """
+
+    cur = con.execute(sql)
+    rounds = cur.fetchall()
+    con.close()
+
+    return rounds
+
+def add_match(user_id, tournament_id, match_team_code1, match_team_code2, match_starttime, match_phase):
+
+    if match_team_code1 == '' or match_team_code2 == '' or match_team_code1 == match_team_code2:
+        return False
+
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+    
+    sql = """
+    SELECT COUNT(*)
+    FROM   matches
+    WHERE  match_team_code1 = "{match_team_code1}"
+    AND    match_team_code2 = "{match_team_code2}"
+    AND    tournament_id    = {tournament_id}
+    AND    match_phase      = "{match_phase}"
+    """.format(tournament_id=tournament_id, match_team_code1=match_team_code1, match_team_code2=match_team_code2, match_phase=match_phase)
+
+    cur = con.execute(sql)
+    count = cur.fetchone()[0]
+
+    if count > 0:
+        con.close()
+        return False
+
+    try:
+        sql = """
+        INSERT INTO matches (match_team_code1, match_team_code2, match_starttime, match_phase, tournament_id)
+        VALUES ("{match_team_code1}", "{match_team_code2}", "{match_starttime}", "{match_phase}", {tournament_id})
+        """.format(tournament_id=tournament_id, match_team_code1=match_team_code1, match_team_code2=match_team_code2, match_phase=match_phase, match_starttime=match_starttime)
+
+        con.execute(sql)
+        con.commit()
+        con.close()
+
+        return True
+    except:
+        con.close()
+        return False
+
+def update_result(user_id, match_id, match_history, match_additionals, match_score):
+    con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
+
+    sql = """
+    UPDATE matches
+    SET    match_history = "{match_history}",
+           match_additionals = "{match_additionals}",
+           match_score = "{match_score}",
+           user_id = {user_id}
+    WHERE  match_id = {match_id}
+    """.format(match_id=match_id, match_history=match_history, match_additionals=match_additionals, match_score=match_score, user_id=user_id)
+
+    con.execute(sql)
+    con.commit()
+    con.close()
