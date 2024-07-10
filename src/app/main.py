@@ -272,7 +272,7 @@ def view_bets():
     matches = helpers.get_matches(tournament_id, current_datetime)
 
     select_match.update(
-        options=[(match[0], match[1] + ' vs ' + match[2]) for match in matches],
+        options=[(match[0], match[1] + ' vs ' + match[2] + ' - ' + match[5]) for match in matches],
         visible=True
     )
 
@@ -479,7 +479,7 @@ def view_set_result():
 
     matches = helpers.get_matches(select_tournament.value)
     select_match_for_settings.update(
-        options=[(match[0], match[1] + ' vs ' + match[2]) for match in matches],
+        options=[(match[0], match[1] + ' vs ' + match[2] + ' - ' + match[5]) for match in matches],
         visible=True
     )
 

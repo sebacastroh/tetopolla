@@ -98,7 +98,7 @@ def get_match(match_id, user_id=None):
 def get_matches(tournament_id, starttime=None):
     con = sqlite3.connect(os.path.join(dataPath, 'tetopolla.db'))
     sql = """
-        SELECT match_id, match_team_code1, match_team_code2, match_score, match_starttime
+        SELECT match_id, match_team_code1, match_team_code2, match_score, match_starttime, match_phase
         FROM   matches
         WHERE
             tournament_id = {tournament_id}
