@@ -231,7 +231,7 @@ def get_points(tournament_id, user=None):
             if bet_score == match_score:
                 bet_points = 20
             else:
-                bet_points = 10
+                bet_points = -10
 
         points[user_id] += bet_points
 
